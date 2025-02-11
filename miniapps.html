@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Дневник питания</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .tabs {
+            display: flex;
+            justify-content: space-around;
+            background-color: #333;
+            padding: 10px;
+        }
+        .tabs button {
+            background-color: #555;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        .tabs button:hover {
+            background-color: #777;
+        }
+        .content {
+            padding: 20px;
+        }
+        .dish {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: white;
+        }
+        .dish img {
+            max-width: 100%;
+            height: auto;
+        }
+        .chart-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="tabs">
+        <button onclick="showTab('diary')">Дневник</button>
+        <button onclick="showTab('stats')">Статистика</button>
+        <button onclick="showTab('weight')">Вес</button>
+        <button onclick="showTab('profile')">Профиль</button>
+    </div>
+
+    <div class="content">
+        <div id="diary" class="tab">
+            <h2>Дневник</h2>
+            <div id="dishes"></div>
+        </div>
+        <div id="stats" class="tab" style="display: none;">
+            <h2>Статистика</h2>
+            <div class="chart-container">
+                <canvas id="caloriesChart"></canvas>
+            </div>
+        </div>
+        <div id="weight" class="tab" style="display: none;">
+            <h2>Вес</h2>
+            <input type="number" id="weightInput" placeholder="Введите ваш вес">
+            <button onclick="saveWeight()">Сохранить</button>
+            <div id="weightHistory"></div>
+        </div>
+        <div id="profile" class="tab" style="display: none;">
+            <h2>Профиль</h2>
+            <p>Цель: <span id="goal"></span></p>
+            <p>Пол: <span id="gender"></span></p>
+            <p>Рост: <span id="height"></span></p>
+            <p>Вес: <span id="currentWeight"></span></p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const dishes = [];  // Хранение блюд
+        const weightHistory = [];  // Хранение истории веса
+
+        // Показ вкладок
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.style.display = 'none');
+            document.getElementById(tabName).style.display = 'block';
+        }
+
+        // Добавление блюда в дневник
+        function addDish(photoUrl, calories, proteins, fats, carbs) {
+            const dish = { photoUrl, calories, proteins, fats, carbs };
+            dishes.push(dish);
+            renderDiary();
+        }
+
+        // Отображение дневника
+        function renderDiary() {
+            const dishesContainer = document.getElementById('dishes');
+            dishesContainer.innerHTML = dishes.map((dish, index) => `
+                <div class="dish">
+                    <img src="${dish.photoUrl}" alt="Блюдо">
+                    <p>Калории: ${dish.calories} ккал</p>
+                    <p>Белки: ${dish.proteins} г</p>
+                    <p>Жиры: ${dish.fats} г</p>
+                    <p>Углеводы: ${dish.carbs} г</p>
+                    <button onclick="deleteDish(${index})">Удалить</button>
+                </div>
+            `).join('');
+            renderStats();
+        }
+
+        // Удаление блюда
+        function deleteDish(index) {
+            dishes.splice(index, 1);
+            renderDiary();
+        }
+
+        // Отображение статистики
+        function renderStats() {
+            const ctx = document.getElementById('caloriesChart').getContext('2d');
+            const labels = dishes.map((_, i) => `Блюдо ${i + 1}`);
+            const data = dishes.map(dish => dish.calories);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Калории',
+                        data: data,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Сохранение веса
+        function saveWeight() {
+            const weight = parseFloat(document.getElementById('weightInput').value);
+            if (weight) {
+                weightHistory.push(weight);
+                renderWeightHistory();
+            }
+        }
+
+        // Отображение истории веса
+        function renderWeightHistory() {
+            const weightHistoryContainer = document.getElementById('weightHistory');
+            weightHistoryContainer.innerHTML = weightHistory.map(weight => `
+                <p>${weight} кг</p>
+            `).join('');
+        }
+
+        // Инициализация
+        function init() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const photoUrl = urlParams.get('photo');
+            const calories = urlParams.get('calories');
+            const proteins = urlParams.get('proteins');
+            const fats = urlParams.get('fats');
+            const carbs = urlParams.get('carbs');
+
+            if (photoUrl && calories && proteins && fats && carbs) {
+                addDish(photoUrl, calories, proteins, fats, carbs);
+            }
+
+            showTab('diary');
+            renderDiary();
+            renderWeightHistory();
+        }
+
+        init();
+    </script>
+</body>
+</html>
